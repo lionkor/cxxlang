@@ -9,6 +9,7 @@ enum class Type
     String,
     Number,
     Array,
+    Function,
 };
 
 class Variant
