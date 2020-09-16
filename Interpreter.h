@@ -3,23 +3,23 @@
 
 #include <vector>
 #include <stack>
+#include <string>
 #include "Variant.h"
+#include "Token.h"
 
-// interface
-class IInstruction
-{
-public:
-    virtual void execute(std::stack<Variant>& stack) = 0;
+struct Result {
+    const bool ok { true };
+    const std::string message { "" };
 };
 
 class Interpreter
 {
 private:
     std::stack<Variant> m_stack;
-    std::vector<IInstruction> m_instrs;
+    std::vector<Token*> m_tokens;
 
 public:
-    Interpreter(std::vector<IInstruction>&& instrs);
+    Interpreter(std::vector<Token*>&& tokens);
 
     // TODO:
     Result run();
