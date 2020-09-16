@@ -3,7 +3,10 @@
 
 #include <vector>
 #include <stack>
+#include <map>
 #include <string>
+#include <functional>
+
 #include "Variant.h"
 #include "Token.h"
 
@@ -29,14 +32,22 @@ private:
     std::string m_error { "" };
     size_t m_index { 0 };
     size_t m_depth;
+    std::map<std::string, std::function<void()>> m_function_map;
 
-    
     void setw() const;
     void handle_condition();
+    void handle_block();
+    void handle_expression();
+    void handle_string_expression();
+    void handle_numeric_expression();
+    void skip_block();
+    void handle_statement();
     void handle();
     void expect(Token::Type type);
     void consume(Token::Type type);
     void consume_blindly();
+    void gather_args();
+
     Token::Type peek() const;
 
     void print_stack() const;

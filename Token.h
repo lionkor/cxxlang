@@ -28,11 +28,19 @@ struct Token {
         SymbolSemicolon,     // ;
         KeywordAnd,          // and
         KeywordOr,           // or
+        Invalid,             // an invalid type
+        SymbolComma,         // ,
     } type;
     Variant value;
 
     std::string print() const {
         switch (type) {
+        case Token::SymbolComma:
+            return ",";
+            break;
+        case Token::Invalid:
+            return "INVALID";
+            break;
         case Token::KeywordAnd:
             return "and";
             break;
@@ -97,6 +105,12 @@ struct Token {
 
 static inline std::string nameof(Token::Type t) {
     switch (t) {
+    case Token::SymbolComma:
+        return "',' symbol";
+        break;
+    case Token::Invalid:
+        return "INVALID";
+        break;
     case Token::KeywordAnd:
         return "'and' keyword";
         break;
@@ -170,6 +184,7 @@ static const std::unordered_map<std::string, Token::Type> s_str_token_map = {
     { ";", Token::Type::SymbolSemicolon },
     { "and", Token::Type::KeywordAnd },
     { "or", Token::Type::KeywordOr },
+    { ",", Token::Type::SymbolComma },
 };
 
 #endif // TOKEN_H

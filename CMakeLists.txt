@@ -9,6 +9,7 @@ project(cxxlang)
 add_executable(cxxlang main.cpp
     Parser.cpp
     Interpreter.cpp
+    Calculator.cpp
 )
 
 #target_link_libraries(${CMAKE_PROJECT_NAME} )
