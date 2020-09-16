@@ -43,7 +43,7 @@ Parser::Parser(const std::string& src) {
             i += end - number_str.begin();
             found = true;
         }
-        
+
         // handle string literals
         if (!found && src[i] == '"') {
             std::string str;
@@ -58,6 +58,7 @@ Parser::Parser(const std::string& src) {
                     break;
                 } else if (k >= src.size()) {
                     // ERROR
+                    std::cout << "→ Error: Unterminated string literal starting at " << i << std::endl;
                     break;
                 }
                 str += src[k];

@@ -13,6 +13,8 @@ private:
 
 public:
     Parser(const std::string& src);
+
+    const std::vector<Token*>& tokens() const { return m_tokens; }
 };
 
 #endif // PARSER_H

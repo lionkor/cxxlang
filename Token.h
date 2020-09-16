@@ -26,11 +26,19 @@ struct Token {
         SymbolOpeningCurly,  // {
         SymbolClosingCurly,  // }
         SymbolSemicolon,     // ;
+        KeywordAnd,          // and
+        KeywordOr,           // or
     } type;
     Variant value;
 
     std::string print() const {
         switch (type) {
+        case Token::KeywordAnd:
+            return "and";
+            break;
+        case Token::KeywordOr:
+            return "or";
+            break;
         case Token::SymbolSemicolon:
             return ";";
             break;
@@ -87,6 +95,65 @@ struct Token {
     }
 };
 
+static inline std::string nameof(Token::Type t) {
+    switch (t) {
+    case Token::KeywordAnd:
+        return "'and' keyword";
+        break;
+    case Token::KeywordOr:
+        return "'or' keyword";
+        break;
+    case Token::KeywordIf:
+        return "'if' keyword";
+        break;
+    case Token::KeywordWhile:
+        return "'while' keyword";
+        break;
+    case Token::Identifier:
+        return "identifier";
+        break;
+    case Token::SymbolEquals:
+        return "'=' symbol";
+        break;
+    case Token::SymbolAssign:
+        return "':=' symbol";
+        break;
+    case Token::SymbolPlus:
+        return "'+' symbol";
+        break;
+    case Token::SymbolMinus:
+        return "'-' symbol";
+        break;
+    case Token::StringLiteral:
+        return "string literal";
+        break;
+    case Token::NumberLiteral:
+        return "number literal";
+        break;
+    case Token::SymbolOpeningParens:
+        return "'(' symbol";
+        break;
+    case Token::SymbolClosingParens:
+        return "')' symbol";
+        break;
+    case Token::KeywordTrue:
+        return "'true' keyword";
+        break;
+    case Token::KeywordFalse:
+        return "'false' keyword";
+        break;
+    case Token::SymbolOpeningCurly:
+        return "'{' symbol";
+        break;
+    case Token::SymbolClosingCurly:
+        return "'}' symbol";
+        break;
+    case Token::SymbolSemicolon:
+        return "';' symbol";
+        break;
+    }
+}
+
 static const std::unordered_map<std::string, Token::Type> s_str_token_map = {
     { "if", Token::Type::KeywordIf },
     { "while", Token::Type::KeywordWhile },
@@ -101,6 +168,8 @@ static const std::unordered_map<std::string, Token::Type> s_str_token_map = {
     { "{", Token::Type::SymbolOpeningCurly },
     { "}", Token::Type::SymbolClosingCurly },
     { ";", Token::Type::SymbolSemicolon },
+    { "and", Token::Type::KeywordAnd },
+    { "or", Token::Type::KeywordOr },
 };
 
 #endif // TOKEN_H
