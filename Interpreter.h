@@ -32,8 +32,11 @@ private:
 
     
     void setw() const;
+    void handle_condition();
     void handle();
+    void expect(Token::Type type);
     void consume(Token::Type type);
+    void consume_blindly();
     Token::Type peek() const;
 
     void print_stack() const;

@@ -3,7 +3,8 @@
 #include "Parser.h"
 
 int main(int, char**) {
-    Parser parser("if (true and false) { print(\"hello\"); )}");
+    //Parser parser("if (true and false) { print(\"hello\"); )}");
+    Parser parser("if (false or (true or false))");
     Interpreter interp(parser.tokens());
     std::cout << "→ running...\n";
     auto res = interp.run();

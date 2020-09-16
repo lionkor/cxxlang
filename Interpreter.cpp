@@ -2,7 +2,57 @@
 #include <iomanip>
 
 void Interpreter::setw() const {
-    std::cout << std::setfill('.') << std::setw((m_depth - 1) * 4) << " ";
+    std::cout << std::setfill('.') << std::setw((m_depth - 1) * 4) << "";
+}
+
+void Interpreter::handle_condition() {
+    // pre stack: ?
+    // post stack: bool containing the resulting value
+
+    ++m_depth;
+
+    print_stack();
+    if (peek() == Token::SymbolOpeningParens) {
+        consume(Token::SymbolOpeningParens);
+        handle_condition();
+        consume(Token::SymbolClosingParens);
+    } else {
+        print_stack();
+
+        if (peek() == Token::KeywordTrue) {
+            consume(Token::KeywordTrue);
+            m_stack.push(Variant(true, Type::Bool));
+        } else if (peek() == Token::KeywordFalse) {
+            consume(Token::KeywordFalse);
+            m_stack.push(Variant(false, Type::Bool));
+        } else if (peek() == Token::Identifier) {
+            std::cout << "identifiers not yet supported in conditions, defaulting to false" << std::endl;
+            consume(Token::Identifier);
+            m_stack.push(Variant(false, Type::Bool));
+        } else {
+            std::cout << "→ Error: invalid condition, unexpected token: " << nameof(peek()) << " at index " << m_index << std::endl;
+            m_ok = false;
+            return;
+        }
+    }
+    print_stack();
+
+    if (peek() == Token::KeywordAnd || peek() == Token::KeywordOr) {
+        auto type = peek();
+        consume_blindly();
+        handle_condition();
+        bool second = m_stack.top().as<bool>();
+        m_stack.pop();
+        bool first = m_stack.top().as<bool>();
+        m_stack.pop();
+        if (type == Token::KeywordAnd) {
+            m_stack.push(Variant(first && second, Type::Bool));
+        } else {
+            m_stack.push(Variant(first || second, Type::Bool));
+        }
+    }
+    --m_depth;
+    print_stack();
 }
 
 void Interpreter::handle() {
@@ -17,39 +67,13 @@ void Interpreter::handle() {
     std::cout << "processing " << tok.print() << std::endl;
     switch (tok.type) {
     case Token::KeywordAnd: {
-        if (m_context.top() == Context::Condition
-            && m_stack.top().type() == Type::Bool) {
-            // more conditions!
-            handle();
-            if (m_stack.top().type() != Type::Bool) {
-                std::cout << "→ and followed by non-bool" << std::endl;
-            }
-            bool second = m_stack.top().as<bool>();
-            m_stack.pop();
-            bool first = m_stack.top().as<bool>();
-            m_stack.pop();
-            m_stack.push(Variant(first && second, Type::Bool));
-        }
         break;
-    }
     case Token::KeywordOr:
         break;
     case Token::KeywordIf: {
         consume(Token::SymbolOpeningParens);
-        m_context.push(Context::Condition);
-        handle();
-        if (m_context.top() == Context::Condition) {
-            m_context.pop();
-        } else {
-            std::cout << "→ Invalid context detected" << std::endl;
-        }
+        handle_condition();
         consume(Token::SymbolClosingParens);
-        // evaluate stack contents
-        if (m_stack.top().type() != Type::Bool) {
-            std::cout << "→ Unexpected stack contents" << std::endl;
-        }
-        bool res = m_stack.top().as<bool>();
-        m_stack.pop();
         break;
     }
     case Token::KeywordWhile:
@@ -73,22 +97,8 @@ void Interpreter::handle() {
     case Token::SymbolClosingParens:
         break;
     case Token::KeywordTrue:
-        if (m_context.top() == Context::Condition) {
-            m_stack.push(Variant(true, Type::Bool));
-            if (peek() == Token::Type::KeywordAnd
-                || peek() == Token::Type::KeywordOr) {
-                handle();
-            }
-        }
         break;
     case Token::KeywordFalse:
-        if (m_context.top() == Context::Condition) {
-            m_stack.push(Variant(false, Type::Bool));
-            if (peek() == Token::Type::KeywordAnd
-                || peek() == Token::Type::KeywordOr) {
-                handle();
-            }
-        }
         break;
     case Token::SymbolOpeningCurly:
         break;
@@ -97,16 +107,27 @@ void Interpreter::handle() {
     case Token::SymbolSemicolon:
         break;
     }
+    }
     print_stack();
     --m_depth;
 }
 
-void Interpreter::consume(Token::Type type) {
+void Interpreter::expect(Token::Type type) {
     if (m_tokens.at(m_index)->type != type) {
         m_ok = false;
         m_error = "Expected " + nameof(type) + ", got " + nameof(m_tokens[m_index]->type) + " (\"" + m_tokens[m_index]->print() + "\") instead";
         std::cout << "→ Error: " << m_error << std::endl;
     }
+}
+
+void Interpreter::consume(Token::Type type) {
+    if (m_tokens.at(m_index)->type != type) {
+        expect(type);
+    }
+    ++m_index;
+}
+
+void Interpreter::consume_blindly() {
     ++m_index;
 }
 
