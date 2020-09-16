@@ -21,12 +21,12 @@ Parser::Parser(const std::string& src) {
                 found = true;
                 break;
             } else {
-                auto tok = Token { pair.second, Variant(substr, Type::String) };
+                //auto tok = Token { pair.second, Variant(substr, Type::String) };
                 //std::cout << "  ( _" << substr << "_ is not " << tok.print() << ")" << std::endl;
             }
         }
 
-        // handle numbers
+        // handle number literals
         if (!found && std::isdigit(src[i])) {
             std::string number_str;
             // FIXME : this is shit
@@ -41,6 +41,44 @@ Parser::Parser(const std::string& src) {
             m_tokens.push_back(tok);
             // advance i
             i += end - number_str.begin();
+            found = true;
+        }
+        
+        // handle string literals
+        if (!found && src[i] == '"') {
+            std::string str;
+            size_t k = i + 1;
+            for (;; ++k) {
+                if (src[k] == '"') {
+                    auto tok = new Token { Token::Type::StringLiteral, Variant(str, Type::String) };
+                    std::cout << "→ Found token: " << tok->print() << std::endl;
+                    m_tokens.push_back(tok);
+                    i = k + 1;
+                    found = true;
+                    break;
+                } else if (k >= src.size()) {
+                    // ERROR
+                    break;
+                }
+                str += src[k];
+            }
+        }
+
+        // handle identifiers
+        if (!found && std::isalpha(src[i])) {
+            std::string id;
+            size_t k = i;
+            for (; k < src.size(); ++k) {
+                if (std::isalnum(src[k])) {
+                    id += src[k];
+                } else {
+                    break;
+                }
+            }
+            i = k;
+            auto tok = new Token { Token::Type::Identifier, Variant(id, Type::String) };
+            std::cout << "→ Found token: " << tok->print() << std::endl;
+            m_tokens.push_back(tok);
             found = true;
         }
 

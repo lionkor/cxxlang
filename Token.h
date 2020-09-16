@@ -25,11 +25,15 @@ struct Token {
         KeywordFalse,        // false
         SymbolOpeningCurly,  // {
         SymbolClosingCurly,  // }
+        SymbolSemicolon,     // ;
     } type;
     Variant value;
 
     std::string print() const {
         switch (type) {
+        case Token::SymbolSemicolon:
+            return ";";
+            break;
         case Token::SymbolOpeningCurly:
             return "{";
             break;
@@ -96,6 +100,7 @@ static const std::unordered_map<std::string, Token::Type> s_str_token_map = {
     { "false", Token::Type::KeywordFalse },
     { "{", Token::Type::SymbolOpeningCurly },
     { "}", Token::Type::SymbolClosingCurly },
+    { ";", Token::Type::SymbolSemicolon },
 };
 
 #endif // TOKEN_H
