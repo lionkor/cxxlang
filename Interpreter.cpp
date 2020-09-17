@@ -2,7 +2,10 @@
 #include <iomanip>
 
 void Interpreter::setw() const {
-    std::cout << std::setfill('.') << std::setw((m_depth - 1)) << "";
+    return;
+    for (size_t i = 0; i < m_depth - 1; ++i) {
+        std::cout << ".";
+    }
 }
 
 void Interpreter::handle_condition() {
@@ -10,6 +13,9 @@ void Interpreter::handle_condition() {
     // post stack: bool containing the resulting value
 
     ++m_depth;
+
+    // TODO: abstract away stack operations, then call print_stack on each operation :)
+
 
     print_stack();
     if (peek() == Token::SymbolOpeningParens) {
@@ -166,6 +172,7 @@ void Interpreter::handle() {
         if (m_function_map.find(val) != m_function_map.end()) {
             // get args
             gather_args();
+            print_stack();
             m_function_map[val]();
         }
         break;
