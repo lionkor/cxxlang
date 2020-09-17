@@ -269,11 +269,16 @@ void Interpreter::print_stack() const {
 Interpreter::Interpreter(const std::vector<Token*>& tokens)
     : m_tokens(tokens) {
     auto fn_print = [&] {
-        Variant arg = m_stack.top();
-        if (arg.is(Type::String)) {
-            std::cout << arg.as<std::string>() << std::endl;
+        if (m_stack.empty()) {
+            std::cout << "→ Error: argument of type string expected" << std::endl;
         } else {
-            std::cout << "→ Error: invalid argument to print()" << std::endl;
+            Variant arg = m_stack.top();
+            m_stack.pop();
+            if (arg.is(Type::String)) {
+                std::cout << arg.as<std::string>() << std::endl;
+            } else {
+                std::cout << "→ Error: invalid argument to print()" << std::endl;
+            }
         }
     };
 
