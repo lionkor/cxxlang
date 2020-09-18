@@ -17,48 +17,43 @@ void Interpreter::handle_condition() {
     // TODO: abstract away stack operations, then call print_stack on each operation :)
 
 
-    print_stack();
     if (peek() == Token::SymbolOpeningParens) {
         consume(Token::SymbolOpeningParens);
         handle_condition();
         consume(Token::SymbolClosingParens);
     } else {
-        print_stack();
-
         if (peek() == Token::KeywordTrue) {
             consume(Token::KeywordTrue);
-            m_stack.push(Variant(true, Type::Bool));
+            push(true, Type::Bool);
         } else if (peek() == Token::KeywordFalse) {
             consume(Token::KeywordFalse);
-            m_stack.push(Variant(false, Type::Bool));
+            push(false, Type::Bool);
         } else if (peek() == Token::Identifier) {
             std::cout << "identifiers not yet supported in conditions, defaulting to false" << std::endl;
             consume(Token::Identifier);
-            m_stack.push(Variant(false, Type::Bool));
+            push(false, Type::Bool);
         } else {
             std::cout << "→ Error: invalid condition, unexpected token: " << nameof(peek()) << " at index " << m_index << std::endl;
             m_ok = false;
             return;
         }
     }
-    print_stack();
 
     if (peek() == Token::KeywordAnd || peek() == Token::KeywordOr) {
         auto type = peek();
         consume_blindly();
         handle_condition();
-        bool second = m_stack.top().as<bool>();
-        m_stack.pop();
-        bool first = m_stack.top().as<bool>();
-        m_stack.pop();
+        bool second = top().as<bool>();
+        pop();
+        bool first = top().as<bool>();
+        pop();
         if (type == Token::KeywordAnd) {
-            m_stack.push(Variant(first && second, Type::Bool));
+            push(first && second, Type::Bool);
         } else {
-            m_stack.push(Variant(first || second, Type::Bool));
+            push(first || second, Type::Bool);
         }
     }
     --m_depth;
-    print_stack();
 }
 
 void Interpreter::handle_block() {
@@ -74,7 +69,7 @@ void Interpreter::handle_block() {
         if (curlys == 0) {
             break;
         } else {
-            handle();
+            handle_statement();
         }
     }
     consume(Token::SymbolClosingCurly);
@@ -96,13 +91,13 @@ void Interpreter::handle_expression() {
 void Interpreter::handle_string_expression() {
     auto tok = m_tokens.at(m_index);
     consume(Token::Type::StringLiteral);
-    m_stack.push(tok->value);
+    push(tok->value);
 }
 
 void Interpreter::handle_numeric_expression() {
     auto tok = m_tokens.at(m_index);
     consume(Token::Type::NumberLiteral);
-    m_stack.push(tok->value);
+    push(tok->value);
     // TODO: Call Calculator for this
 }
 
@@ -126,6 +121,8 @@ void Interpreter::skip_block() {
 }
 
 void Interpreter::handle_statement() {
+    handle();
+    consume(Token::SymbolSemicolon);
 }
 
 void Interpreter::handle() {
@@ -133,7 +130,6 @@ void Interpreter::handle() {
     // post stack: ?
 
     ++m_depth;
-    print_stack();
     if (!m_ok) {
         return;
     }
@@ -156,8 +152,8 @@ void Interpreter::handle() {
         consume(Token::SymbolOpeningParens);
         handle_condition();
         consume(Token::SymbolClosingParens);
-        bool condition = m_stack.top().as<bool>();
-        m_stack.pop();
+        bool condition = top().as<bool>();
+        pop();
         if (condition == true) {
             handle_block();
         } else {
@@ -165,14 +161,32 @@ void Interpreter::handle() {
         }
         break;
     }
-    case Token::KeywordWhile:
+    case Token::KeywordWhile: {
+        consume(Token::SymbolOpeningParens);
+        handle_condition();
+        consume(Token::SymbolClosingParens);
+        bool condition = top().as<bool>();
+        pop();
+        size_t start_of_block = m_index;
+        std::optional<size_t> end_of_block = std::nullopt;
+        while (condition == true) {
+            handle_block();
+            end_of_block = m_index;
+            m_index = start_of_block;
+        }
+        if (end_of_block.has_value()) {
+            m_index = end_of_block.value();
+        } else {
+            skip_block();
+        }
+        //skip_block();
         break;
+    }
     case Token::Identifier: {
         auto val = tok.value.as<std::string>();
         if (m_function_map.find(val) != m_function_map.end()) {
             // get args
             gather_args();
-            print_stack();
             m_function_map[val]();
         }
         break;
@@ -204,7 +218,6 @@ void Interpreter::handle() {
     case Token::SymbolSemicolon:
         break;
     }
-    print_stack();
     --m_depth;
 }
 
@@ -259,15 +272,23 @@ Token::Type Interpreter::peek() const {
     return m_tokens.at(m_index)->type;
 }
 
-void Interpreter::print_stack() const {
-#if 0
+void Interpreter::print_stack(const std::string& where) const {
+#if 1
     setw();
-    std::cout << "stack: \n";
+    std::cout << " > stack " << where << "\n";
     std::stack stack_copy = m_stack;
+    size_t i = 0;
     while (!stack_copy.empty()) {
         setw();
-        std::cout << " > " << stack_copy.top().print() << "\n";
+        std::cout << "    ";
+        if (i == 0) {
+            std::cout << "top: ";
+        } else {
+            std::cout << std::setw(3) << i << ": ";
+        }
+        std::cout << stack_copy.top().print() << "\n";
         stack_copy.pop();
+        ++i;
     }
     std::cout << std::endl;
 #endif
@@ -279,8 +300,8 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
         if (m_stack.empty()) {
             std::cout << "→ Error: argument of type string expected" << std::endl;
         } else {
-            Variant arg = m_stack.top();
-            m_stack.pop();
+            Variant arg = top();
+            pop();
             if (arg.is(Type::String)) {
                 std::cout << arg.as<std::string>() << std::endl;
             } else {
@@ -296,13 +317,12 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
 
 
 Result Interpreter::run() {
-    print_stack();
     m_index = 0;
     m_depth = 0;
     while (m_ok && m_index < m_tokens.size()) {
         handle();
     }
 
-    print_stack();
+    print_stack("at end of program");
     return { m_ok, m_error };
 }

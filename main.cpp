@@ -3,20 +3,13 @@
 #include "Parser.h"
 
 const std::string src =
-R"(
-if (true or false) {
-    print("it's true!");
-    print("isn't this cool?!");
-}
-if ((false and false) or true) {
-    print("wowzie, we can do boolean expressions!?");
+    R"(
+if (true and (false or (true and (false or true)))) {
+    print("Hello, World!");
 }
 )";
 
 int main(int, char**) {
-    //Parser parser("if (true or false) { print(\"hello\"); )}");
-    //Parser parser("if (false or (true or false))");
-    //Parser parser("if (true) { if (false) { print(\"hi\"); } if (true) { print(\"ok\"); } }");
     Parser parser(src);
     Interpreter interp(parser.tokens());
     std::cout << "→ running...\n";

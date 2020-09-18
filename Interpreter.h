@@ -48,9 +48,37 @@ private:
     void consume_blindly();
     void gather_args();
 
+    template<typename T>
+    void push(T value, Type type) {
+        auto variant = Variant(value, type);
+        print_stack("before push(" + variant.print() + ")");
+        m_stack.push(variant);
+        print_stack("after push(" + variant.print() + ")");
+    }
+
+    void push(Variant variant) {
+        print_stack("before push(" + variant.print() + ")");
+        m_stack.push(variant);
+        print_stack("after push(" + variant.print() + ")");
+    }
+
+    void pop() {
+        print_stack("before pop");
+        m_stack.pop();
+        print_stack("after pop");
+    }
+
+    Variant& top() {
+        return m_stack.top();
+    }
+
+    const Variant& top() const {
+        return m_stack.top();
+    }
+
     Token::Type peek() const;
 
-    void print_stack() const;
+    void print_stack(const std::string& where) const;
 
 public:
     Interpreter(const std::vector<Token*>& tokens);
