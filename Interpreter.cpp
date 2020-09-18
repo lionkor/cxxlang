@@ -1,5 +1,6 @@
 #include "Interpreter.h"
 #include <iomanip>
+#include <charconv>
 
 void Interpreter::handle_condition() {
     // pre stack: ?
@@ -176,6 +177,7 @@ void Interpreter::handle() {
     case Token::Identifier: {
         auto val = tok.value.as<std::string>();
         if (m_function_map.find(val) != m_function_map.end()) {
+            // function call!
             // get args
             size_t argc = gather_args();
             if (argc != m_function_map[val].argc) {
@@ -185,6 +187,10 @@ void Interpreter::handle() {
             } else {
                 m_function_map[val].fn();
             }
+        } else if (m_type_map.find(val) != m_type_map.end()) {
+            // variable declaration!
+        } else if (m_variables.find(val) != m_variables.end()) {
+            stack_push(m_variables[val]);
         } else {
             error("identifier \"" << val << "\" doesn't map to any function or value" << std::endl);
             m_ok = false;
@@ -303,7 +309,7 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
         auto res = stack_expect(Type::String);
         if (res.has_value()) {
             auto [str] = res.value();
-            std::cout << "PRINT: " << str.as<std::string>() << std::endl;
+            std::cout << "" << str.as<std::string>() << std::endl;
         } else {
             error("call to print failed, invalid args" << std::endl);
             m_ok = false;
@@ -317,7 +323,22 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
             auto [str1, str2] = res.value();
             stack_push(str1.as<std::string>() + str2.as<std::string>(), Type::String);
         } else {
-            error("call to print failed, invalid args" << std::endl);
+            error("call to string_concat failed, invalid args" << std::endl);
+            m_ok = false;
+            return;
+        }
+    };
+
+    auto fn_number_to_string = [&] {
+        auto res = stack_expect(Type::Number);
+        if (res.has_value()) {
+            auto [num] = res.value();
+            std::string str;
+            str.resize(30);
+            auto n = std::sprintf(str.data(), "%f", num.as<double>());
+            stack_push(str.substr(0, n), Type::String);
+        } else {
+            error("call to number_to_string failed, invalid args" << std::endl);
             m_ok = false;
             return;
         }
@@ -327,6 +348,14 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
     m_function_map = {
         { "print", { fn_print, 1 } },
         { "string_concat", { fn_string_concat, 2 } },
+        { "number_to_string", { fn_number_to_string, 1 } },
+    };
+
+    m_type_map = {
+        { "Number", Type::Number },
+        { "String", Type::String },
+        { "Array", Type::Array },
+        { "Bool", Type::Bool },
     };
 }
 

@@ -37,6 +37,8 @@ private:
     bool m_ok { true };
     size_t m_index { 0 };
     std::map<std::string, Function> m_function_map;
+    std::map<std::string, Type> m_type_map;
+    std::map<std::string, Variant> m_variables;
 
     void handle_condition();
     void handle_block();

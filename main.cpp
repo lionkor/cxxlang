@@ -4,9 +4,7 @@
 
 const std::string src =
     R"(
-if (true and (false or (true and (false or true)))) {
-    print(string_concat("im so ", string_concat("goddamn " , "beautiful")));
-}
+print(number_to_string(5.42));
 )";
 
 int main(int, char**) {
