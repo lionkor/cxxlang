@@ -23,3 +23,19 @@ isn't this cool?!
 wowzie, we can do boolean expressions!?
 → returned OK
 ```
+
+
+Another one: 
+
+```c
+print(string_concat("im so ", string_concat("damn " , "happy")));
+```
+
+which is silly, but is used to demonstrate that functions work as expected!
+
+output: 
+```
+→ running...
+im so damn happy
+→ returned OK
+```

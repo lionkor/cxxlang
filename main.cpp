@@ -5,7 +5,7 @@
 const std::string src =
     R"(
 if (true and (false or (true and (false or true)))) {
-    print(string_concat("im so ", "beautiful!"));
+    print(string_concat("im so ", string_concat("goddamn " , "beautiful")));
 }
 )";
 
