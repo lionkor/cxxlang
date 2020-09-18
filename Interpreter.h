@@ -45,6 +45,28 @@ private:
     void consume_blindly();
     void gather_args();
 
+    template<typename... Types>
+    std::optional<std::array<Variant, sizeof...(Types)>> stack_expect(Types&&... types) {
+        std::array<Variant, sizeof...(Types)> values;
+        size_t i = values.size() - 1;
+        std::array<Type, sizeof...(Types)> args { types... };
+        std::reverse(args.begin(), args.end());
+        for (Type type : args) {
+            if (!m_stack.empty() && top().type() == type) {
+                Variant variant = top();
+                pop();
+                values[i] = variant;
+            } else {
+                std::cout << "→ Error: function got unexpected arguments. expected arguments were: ";
+                ((std::cout << type_to_string(types) << " "), ...);
+                std::cout << std::endl;
+                return std::nullopt;
+            }
+            i--;
+        }
+        return values;
+    }
+
     template<typename T>
     void push(T value, Type type) {
         auto variant = Variant(value, type);

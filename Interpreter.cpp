@@ -246,11 +246,15 @@ void Interpreter::gather_args() {
             handle_expression();
             if (peek() != Token::SymbolComma) {
                 break;
+            } else {
+                std::cout << "got comma\n";
+                consume(Token::SymbolComma);
             }
         }
     }
     consume(Token::SymbolClosingParens);
 }
+
 
 Token::Type Interpreter::peek() const {
     if (m_index >= m_tokens.size()) {
@@ -282,16 +286,10 @@ void Interpreter::print_stack(const std::string& where) const {
 Interpreter::Interpreter(const std::vector<Token*>& tokens)
     : m_tokens(tokens) {
     auto fn_print = [&] {
-        if (m_stack.empty()) {
-            std::cout << "→ Error: argument of type string expected" << std::endl;
-        } else {
-            Variant arg = top();
-            pop();
-            if (arg.is(Type::String)) {
-                std::cout << arg.as<std::string>() << std::endl;
-            } else {
-                std::cout << "→ Error: invalid argument to print()" << std::endl;
-            }
+        auto res = stack_expect(Type::String, Type::Number);
+        if (res.has_value()) {
+            auto [str, num] = res.value();
+            std::cout << num.as<double>() << ": " << str.as<std::string>() << std::endl;
         }
     };
 

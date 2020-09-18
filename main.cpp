@@ -5,7 +5,7 @@
 const std::string src =
     R"(
 if (true and (false or (true and (false or true)))) {
-    print("Hello, World!");
+    print("Hello, World!", 2);
 }
 )";
 

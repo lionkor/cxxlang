@@ -16,6 +16,28 @@ enum class Type : uint8_t
     None,
 };
 
+static inline std::string type_to_string(Type t) {
+    switch (t) {
+    case Type::String:
+        return "String";
+        break;
+    case Type::Number:
+        return "Number";
+        break;
+    case Type::Array:
+        return "Array";
+        break;
+    case Type::Bool:
+        return "Bool";
+        break;
+    case Type::None:
+        return "None";
+        break;
+    default:
+        return "Unknown ???";
+    }
+}
+
 class Variant final
 {
 private:
@@ -23,11 +45,11 @@ private:
     std::shared_ptr<uint8_t> m_raw { nullptr };
     size_t m_size { 0 };
 
+public:
     Variant()
         : m_type(Type::None), m_raw(nullptr), m_size(0) {
     }
 
-public:
     template<typename T>
     Variant(T t, Type type) noexcept
         : m_type(type)
