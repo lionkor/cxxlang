@@ -5,7 +5,7 @@
 const std::string src =
     R"(
 if (true and (false or (true and (false or true)))) {
-    print("Hello, World!", 2);
+    print(string_concat("im so ", "beautiful!"));
 }
 )";
 
@@ -17,6 +17,6 @@ int main(int, char**) {
     if (res.ok) {
         std::cout << "→ returned OK" << std::endl;
     } else {
-        std::cout << "→ returned with Error: " << res.message << std::endl;
+        std::cout << "→ returned with Error" << std::endl;
     }
 }
