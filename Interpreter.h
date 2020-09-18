@@ -26,15 +26,12 @@ class Interpreter
 {
 private:
     std::stack<Variant> m_stack;
-    std::stack<Context> m_context;
     const std::vector<Token*>& m_tokens;
     bool m_ok { true };
     std::string m_error { "" };
     size_t m_index { 0 };
-    size_t m_depth;
     std::map<std::string, std::function<void()>> m_function_map;
 
-    void setw() const;
     void handle_condition();
     void handle_block();
     void handle_expression();

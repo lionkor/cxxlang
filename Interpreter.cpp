@@ -1,18 +1,10 @@
 #include "Interpreter.h"
 #include <iomanip>
 
-void Interpreter::setw() const {
-    return;
-    for (size_t i = 0; i < m_depth - 1; ++i) {
-        std::cout << ".";
-    }
-}
-
 void Interpreter::handle_condition() {
     // pre stack: ?
     // post stack: bool containing the resulting value
 
-    ++m_depth;
 
     // TODO: abstract away stack operations, then call print_stack on each operation :)
 
@@ -53,11 +45,9 @@ void Interpreter::handle_condition() {
             push(first || second, Type::Bool);
         }
     }
-    --m_depth;
 }
 
 void Interpreter::handle_block() {
-    ++m_depth;
     consume(Token::SymbolOpeningCurly);
     size_t curlys = 1;
     for (;;) {
@@ -73,7 +63,6 @@ void Interpreter::handle_block() {
         }
     }
     consume(Token::SymbolClosingCurly);
-    --m_depth;
 }
 
 void Interpreter::handle_expression() {
@@ -129,7 +118,6 @@ void Interpreter::handle() {
     // pre stack: ?
     // post stack: ?
 
-    ++m_depth;
     if (!m_ok) {
         return;
     }
@@ -218,7 +206,6 @@ void Interpreter::handle() {
     case Token::SymbolSemicolon:
         break;
     }
-    --m_depth;
 }
 
 void Interpreter::expect(Token::Type type) {
@@ -274,12 +261,10 @@ Token::Type Interpreter::peek() const {
 
 void Interpreter::print_stack(const std::string& where) const {
 #if 1
-    setw();
     std::cout << " > stack " << where << "\n";
     std::stack stack_copy = m_stack;
     size_t i = 0;
     while (!stack_copy.empty()) {
-        setw();
         std::cout << "    ";
         if (i == 0) {
             std::cout << "top: ";
@@ -318,7 +303,6 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
 
 Result Interpreter::run() {
     m_index = 0;
-    m_depth = 0;
     while (m_ok && m_index < m_tokens.size()) {
         handle();
     }
