@@ -65,12 +65,16 @@ Parser::Parser(const std::string& src) {
             }
         }
 
+        auto is_id_char = [](char c) -> bool {
+            return std::isalnum(c) || c == '_';
+        };
+
         // handle identifiers
-        if (!found && std::isalpha(src[i])) {
+        if (!found && (std::isalpha(src[i]) || src[i] == '_')) {
             std::string id;
             size_t k = i;
             for (; k < src.size(); ++k) {
-                if (std::isalnum(src[k])) {
+                if (is_id_char(src[k])) {
                     id += src[k];
                 } else {
                     break;
