@@ -39,18 +39,19 @@ private:
     std::map<std::string, Function> m_function_map;
     std::map<std::string, Type> m_type_map;
     std::map<std::string, Variant> m_variables;
-
     void handle_condition();
     void handle_block();
     void handle_expression();
     void handle_string_expression();
     void handle_numeric_expression();
+    void handle_variable_declaration(Type t);
     void skip_block();
     void handle_statement();
     void handle();
     void expect_token(Token::Type type);
     void consume(Token::Type type);
     void consume_blindly();
+    const Token& get_token();
     [[nodiscard]] size_t gather_args();
 
     template<typename... Types>

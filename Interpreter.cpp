@@ -94,6 +94,36 @@ void Interpreter::handle_numeric_expression() {
     // TODO: Call Calculator for this
 }
 
+void Interpreter::handle_variable_declaration(Type t) {
+    // get variable ID
+    auto name = get_token();
+    if (name.type != Token::Identifier) {
+        error("expected identifier after typename" << std::endl);
+        m_ok = false;
+        return;
+    }
+    consume(Token::Identifier);
+    auto name_literal = name.value.as<std::string>();
+    consume(Token::SymbolAssign);
+    handle_expression();
+    consume(Token::SymbolSemicolon);
+    // now we should have a value on the stack!
+    if (stack_empty()) {
+        error("cannot assign void" << std::endl);
+        m_ok = false;
+        return;
+    }
+    // and there should be no variable with the same name
+    if (m_variables.find(name_literal) != m_variables.end()) {
+        error("cannot declare variable - variable with same name already exists!" << std::endl);
+        m_ok = false;
+        return;
+    }
+    // all ok, now store
+    m_variables[name_literal] = stack_top();
+    stack_pop();
+}
+
 void Interpreter::skip_block() {
     consume(Token::SymbolOpeningCurly);
     size_t curlys = 1;
@@ -189,6 +219,7 @@ void Interpreter::handle() {
             }
         } else if (m_type_map.find(val) != m_type_map.end()) {
             // variable declaration!
+            handle_variable_declaration(m_type_map[val]);
         } else if (m_variables.find(val) != m_variables.end()) {
             stack_push(m_variables[val]);
         } else {
@@ -207,8 +238,10 @@ void Interpreter::handle() {
     case Token::SymbolMinus:
         break;
     case Token::StringLiteral:
+        // handle_string_expression();
         break;
     case Token::NumberLiteral:
+        // handle_numeric_expression();
         break;
     case Token::SymbolOpeningParens:
         break;
@@ -246,6 +279,10 @@ void Interpreter::consume(Token::Type type) {
 
 void Interpreter::consume_blindly() {
     ++m_index;
+}
+
+const Token& Interpreter::get_token() {
+    return *m_tokens[m_index];
 }
 
 [[nodiscard]] size_t Interpreter::gather_args() {
@@ -356,6 +393,10 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
         { "String", Type::String },
         { "Array", Type::Array },
         { "Bool", Type::Bool },
+    };
+
+    m_variables = {
+        { "PI", Variant(double(3.1415926535897932384626433832795028841), Type::Number) },
     };
 }
 
