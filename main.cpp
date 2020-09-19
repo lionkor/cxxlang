@@ -4,7 +4,7 @@
 
 const std::string src =
     R"(
-Number a := 2 + 5;
+print(number_to_string(1 + 2 + 3));
 )";
 
 int main(int, char**) {
