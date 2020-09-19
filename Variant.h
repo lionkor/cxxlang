@@ -14,6 +14,7 @@ enum class Type : uint8_t
     Array,
     Bool,
     None,
+    Operator
 };
 
 static inline std::string type_to_string(Type t) {
@@ -33,8 +34,32 @@ static inline std::string type_to_string(Type t) {
     case Type::None:
         return "None";
         break;
+    case Type::Operator:
+        return "Operator";
+        break;
     default:
         return "Unknown ???";
+    }
+}
+
+enum class Op
+{
+    Add,
+    Sub,
+    Mult,
+    Div
+};
+
+static inline std::string op_to_string(Op op) {
+    switch (op) {
+    case Op::Add:
+        return "Add";
+    case Op::Sub:
+        return "Sub";
+    case Op::Mult:
+        return "Mult";
+    case Op::Div:
+        return "Div";
     }
 }
 
@@ -105,6 +130,9 @@ public:
             break;
         case Type::None:
             return "None";
+            break;
+        case Type::Operator:
+            return "Operator(" + op_to_string(as<Op>()) + ")";
             break;
         default:
             return "Unknown";

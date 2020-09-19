@@ -1,7 +1,10 @@
 #include "Interpreter.h"
+
 #include <iomanip>
 #include <charconv>
 #include <algorithm>
+
+#include "Calculator.h"
 
 void Interpreter::handle_condition() {
     // pre stack: ?
@@ -11,21 +14,19 @@ void Interpreter::handle_condition() {
     // TODO: abstract away stack operations, then call print_stack on each operation :)
 
 
-    if (peek() == Token::SymbolOpeningParens) {
-        consume(Token::SymbolOpeningParens);
+    if (peek() == Token::OpeningParens) {
+        consume(Token::OpeningParens);
         handle_condition();
-        consume(Token::SymbolClosingParens);
+        consume(Token::ClosingParens);
     } else {
-        if (peek() == Token::KeywordTrue) {
-            consume(Token::KeywordTrue);
+        if (peek() == Token::True) {
+            consume(Token::True);
             stack_push(true, Type::Bool);
-        } else if (peek() == Token::KeywordFalse) {
-            consume(Token::KeywordFalse);
+        } else if (peek() == Token::False) {
+            consume(Token::False);
             stack_push(false, Type::Bool);
         } else if (peek() == Token::Identifier) {
-            std::cout << "identifiers not yet supported in conditions, defaulting to false" << std::endl;
-            consume(Token::Identifier);
-            stack_push(false, Type::Bool);
+            handle();
         } else {
             error("invalid condition, unexpected token: " << nameof(peek()) << " at index " << m_index << std::endl);
             m_ok = false;
@@ -33,7 +34,7 @@ void Interpreter::handle_condition() {
         }
     }
 
-    if (peek() == Token::KeywordAnd || peek() == Token::KeywordOr) {
+    if (peek() == Token::And || peek() == Token::Or) {
         auto type = peek();
         consume_blindly();
         handle_condition();
@@ -41,7 +42,7 @@ void Interpreter::handle_condition() {
         stack_pop();
         bool first = stack_top().as<bool>();
         stack_pop();
-        if (type == Token::KeywordAnd) {
+        if (type == Token::And) {
             stack_push(first && second, Type::Bool);
         } else {
             stack_push(first || second, Type::Bool);
@@ -52,21 +53,38 @@ void Interpreter::handle_condition() {
 void Interpreter::handle_block() {
     m_scope_depth += 1;
     std::cout << "scope depth: " << m_scope_depth << std::endl;
-    consume(Token::SymbolOpeningCurly);
+    consume(Token::OpeningCurly);
     size_t curlys = 1;
     while (m_index < m_tokens.size()) {
-        if (peek() == Token::SymbolOpeningCurly) {
+        if (peek() == Token::OpeningCurly) {
             curlys += 1;
-        } else if (peek() == Token::SymbolClosingCurly) {
+        } else if (peek() == Token::ClosingCurly) {
             curlys -= 1;
         }
         if (curlys == 0) {
             break;
         } else {
-            handle_statement();
+            handle();
+            if (m_tokens.at(m_index - 1)->type != Token::ClosingCurly) {
+                consume(Token::Semicolon);
+            }
         }
     }
-    consume(Token::SymbolClosingCurly);
+    consume(Token::ClosingCurly);
+    m_scope_depth -= 1;
+    std::cout << "scope depth: " << m_scope_depth << std::endl;
+    clean_scope();
+}
+
+void Interpreter::handle_main() {
+    m_scope_depth += 1;
+    std::cout << "scope depth: " << m_scope_depth << std::endl;
+    while (m_index < m_tokens.size()) {
+        handle();
+        if (m_tokens.at(m_index - 1)->type != Token::ClosingCurly) {
+            consume(Token::Semicolon);
+        }
+    }
     m_scope_depth -= 1;
     std::cout << "scope depth: " << m_scope_depth << std::endl;
     clean_scope();
@@ -75,13 +93,14 @@ void Interpreter::handle_block() {
 void Interpreter::handle_expression() {
     // pre stack: ?
     // post stack: the value(s) of the expression
-    if (peek() == Token::Type::StringLiteral) {
+    if (peek() == Token::StringLiteral) {
         handle_string_expression();
-    } else if (peek() == Token::Type::NumberLiteral) {
+    } else if (peek() == Token::True
+               || peek() == Token::False) {
+        handle_condition();
+    } else if (peek() == Token::NumericLiteral
+               || peek() == Token::Identifier) {
         handle_numeric_expression();
-    } else if (peek() == Token::Type::Identifier) {
-        // function call
-        handle();
     } else {
         error("Unknown expression kind: " << nameof(peek()) << std::endl);
     }
@@ -94,13 +113,109 @@ void Interpreter::handle_string_expression() {
 }
 
 void Interpreter::handle_numeric_expression() {
-    auto tok = m_tokens.at(m_index);
-    consume(Token::Type::NumberLiteral);
-    stack_push(tok->value);
-    // TODO: Call Calculator for this
+    // find end of expression
+    size_t end = m_index;
+    size_t parens = 0;
+    bool end_found = false;
+    bool ignore_until_closed_parens = false;
+    std::vector<Variant> expr;
+    for (; !end_found && end < m_tokens.size(); ++end) {
+        std::cout << "current type at " << end << ": " << m_tokens.at(end)->print() << std::endl;
+        switch (m_tokens.at(end)->type) {
+        case Token::OpeningParens:
+            parens += 1;
+            break;
+        case Token::ClosingParens: {
+            // parens only means end if they are closing and aren't part of the expression
+            if (parens == 0) {
+                end_found = true;
+            } else {
+                if (ignore_until_closed_parens) {
+                    ignore_until_closed_parens = false;
+                }
+                parens -= 1;
+            }
+            break;
+        }
+        case Token::Plus:
+            expr.push_back(Variant(Op::Add, Type::Operator));
+            break;
+        case Token::Minus:
+            expr.push_back(Variant(Op::Sub, Type::Operator));
+            break;
+        case Token::Star:
+            expr.push_back(Variant(Op::Mult, Type::Operator));
+            break;
+        case Token::Slash:
+            expr.push_back(Variant(Op::Div, Type::Operator));
+            break;
+        case Token::NumericLiteral:
+            expr.push_back(Variant(m_tokens.at(end)->value.as<double>(), Type::Number));
+            break;
+        case Token::Identifier: {
+            auto name = m_tokens.at(end)->value.as<std::string>();
+            if (m_function_map.find(name) != m_function_map.end()
+                && m_tokens.at(end + 1)->type == Token::OpeningParens) {
+                // it's a function call!
+                end = call_function(name, end);
+                if (stack_top().type() != Type::Number) {
+                    error("function returning non-numeric used in numeric expression: " << name << std::endl);
+                    m_ok = false;
+                    return;
+                }
+                expr.push_back(stack_top());
+                stack_pop();
+            } else {
+                // FIXME: will fail on type names
+                expr.push_back(m_variables[name].value);
+            }
+            break;
+        }
+        default:
+            if (!ignore_until_closed_parens) {
+                end_found = true;
+            }
+            break;
+        }
+    }
+
+    auto find_next_highest_precedence_operator = [&] {
+        for (auto op : { Op::Mult, Op::Div, Op::Add, Op::Sub }) {
+            auto iter = std::find_if(expr.begin(), expr.end(), [&](Variant& var) {
+                return var.type() == Type::Operator && var.as<Op>() == op;
+            });
+            if (iter != expr.end()) {
+                return iter;
+            }
+        }
+        return expr.end();
+    };
+
+    for (auto var : expr) {
+        std::cout << "\t" << var.print() << "\n";
+    }
+
+    auto iter = find_next_highest_precedence_operator();
+    while (iter != expr.end()) {
+        stack_push(*(iter - 1));
+        stack_push(*iter);
+        stack_push(*(iter + 1));
+        calculate();
+        expr.erase(iter - 1, iter + 1);
+        iter = find_next_highest_precedence_operator();
+    }
+
+    if (!expr.empty()) {
+        error("too many non-operators in numeric expression" << std::endl);
+        for (auto var : expr) {
+            std::cout << "\t" << var.print() << "\n";
+        }
+        m_ok = false;
+        return;
+    }
 }
 
-void Interpreter::handle_variable_declaration(Type t) {
+void Interpreter::handle_variable_declaration(Type) {
     // get variable ID
     auto name = get_token();
     if (name.type != Token::Identifier) {
@@ -110,8 +225,11 @@ void Interpreter::handle_variable_declaration(Type t) {
     }
     consume(Token::Identifier);
     auto name_literal = name.value.as<std::string>();
-    consume(Token::SymbolAssign);
+    consume(Token::Assign);
     handle_expression();
+    if (!m_ok) {
+        return;
+    }
     // now we should have a value on the stack!
     if (stack_empty()) {
         error("cannot assign void" << std::endl);
@@ -130,12 +248,12 @@ void Interpreter::handle_variable_declaration(Type t) {
 }
 
 void Interpreter::skip_block() {
-    consume(Token::SymbolOpeningCurly);
+    consume(Token::OpeningCurly);
     size_t curlys = 1;
     for (;;) {
-        if (peek() == Token::SymbolOpeningCurly) {
+        if (peek() == Token::OpeningCurly) {
             curlys += 1;
-        } else if (peek() == Token::SymbolClosingCurly) {
+        } else if (peek() == Token::ClosingCurly) {
             curlys -= 1;
         }
         if (curlys == 0) {
@@ -145,11 +263,7 @@ void Interpreter::skip_block() {
             consume_blindly();
         }
     }
-    consume(Token::SymbolClosingCurly);
-}
-
-void Interpreter::handle_statement() {
-    handle();
+    consume(Token::ClosingCurly);
 }
 
 void Interpreter::handle() {
@@ -166,18 +280,10 @@ void Interpreter::handle() {
     std::cout << "processing " << tok.print() << std::endl;
 #endif
     switch (tok.type) {
-    case Token::SymbolComma:
-        break;
-    case Token::Invalid:
-        break;
-    case Token::KeywordAnd:
-        break;
-    case Token::KeywordOr:
-        break;
-    case Token::KeywordIf: {
-        consume(Token::SymbolOpeningParens);
+    case Token::If: {
+        consume(Token::OpeningParens);
         handle_condition();
-        consume(Token::SymbolClosingParens);
+        consume(Token::ClosingParens);
         bool condition = stack_top().as<bool>();
         stack_pop();
         if (condition == true) {
@@ -187,10 +293,10 @@ void Interpreter::handle() {
         }
         break;
     }
-    case Token::KeywordWhile: {
-        consume(Token::SymbolOpeningParens);
+    case Token::While: {
+        consume(Token::OpeningParens);
         handle_condition();
-        consume(Token::SymbolClosingParens);
+        consume(Token::ClosingParens);
         bool condition = stack_top().as<bool>();
         stack_pop();
         size_t start_of_block = m_index;
@@ -213,18 +319,11 @@ void Interpreter::handle() {
         if (m_function_map.find(val) != m_function_map.end()) {
             // function call!
             // get args
-            size_t argc = gather_args();
-            if (argc != m_function_map[val].argc) {
-                error("\"" << val << "\" expects " << m_function_map[val].argc << " arguments, got " << argc << " instead." << std::endl);
-                m_ok = false;
-                return;
-            } else {
-                m_function_map[val].fn();
-            }
+            auto after = call_function(val, m_index);
+            m_index = after;
         } else if (m_type_map.find(val) != m_type_map.end()) {
             // variable declaration!
             handle_variable_declaration(m_type_map[val]);
-            consume(Token::SymbolSemicolon);
         } else if (m_variables.find(val) != m_variables.end()) {
             stack_push(m_variables[val].value);
         } else {
@@ -234,34 +333,10 @@ void Interpreter::handle() {
         }
         break;
     }
-    case Token::SymbolEquals:
-        break;
-    case Token::SymbolAssign:
-        break;
-    case Token::SymbolPlus:
-        break;
-    case Token::SymbolMinus:
-        break;
-    case Token::StringLiteral:
-        // handle_string_expression();
-        break;
-    case Token::NumberLiteral:
-        // handle_numeric_expression();
-        break;
-    case Token::SymbolOpeningParens:
-        break;
-    case Token::SymbolClosingParens:
-        break;
-    case Token::KeywordTrue:
-        break;
-    case Token::KeywordFalse:
-        break;
-    case Token::SymbolOpeningCurly:
-        break;
-    case Token::SymbolClosingCurly:
-        break;
-    case Token::SymbolSemicolon:
-        break;
+    default:
+        error("invalid token detected: " << tok.print() << std::endl);
+        m_ok = false;
+        return;
     }
 }
 
@@ -296,18 +371,36 @@ void Interpreter::clean_scope() {
     }
 }
 
+size_t Interpreter::call_function(const std::string& val, size_t index) {
+    const size_t old_index = m_index;
+    m_index = index;
+    size_t argc = gather_args();
+    if (argc != m_function_map[val].argc) {
+        error("\"" << val << "\" expects " << m_function_map[val].argc << " arguments, got " << argc << " instead." << std::endl);
+        m_ok = false;
+        m_index = old_index;
+        return m_index;
+    } else {
+        m_function_map[val].fn();
+    }
+    auto ret = m_index;
+    m_index = old_index;
+    return ret;
+}
+
+
 const Token& Interpreter::get_token() {
     return *m_tokens[m_index];
 }
 
 [[nodiscard]] size_t Interpreter::gather_args() {
-    consume(Token::SymbolOpeningParens);
+    consume(Token::OpeningParens);
     size_t parens = 1;
     size_t args = 0;
     for (;;) {
-        if (peek() == Token::SymbolOpeningParens) {
+        if (peek() == Token::OpeningParens) {
             parens += 1;
-        } else if (peek() == Token::SymbolClosingParens) {
+        } else if (peek() == Token::ClosingParens) {
             parens -= 1;
         }
         if (parens == 0) {
@@ -315,15 +408,40 @@ const Token& Interpreter::get_token() {
         } else {
             handle_expression();
             ++args;
-            if (peek() != Token::SymbolComma) {
+            if (peek() != Token::Comma) {
                 break;
             } else {
-                consume(Token::SymbolComma);
+                consume(Token::Comma);
             }
         }
     }
-    consume(Token::SymbolClosingParens);
+    consume(Token::ClosingParens);
     return args;
+}
+
+void Interpreter::calculate() {
+    // executes a calculation that is layed out on the stack
+    auto res = stack_expect(Type::Number, Type::Operator, Type::Number);
+    if (res.has_value()) {
+        auto [right_var, op_var, left_var] = res.value();
+        double right = right_var.as<double>();
+        Op op = right_var.as<Op>();
+        double left = right_var.as<double>();
+        switch (op) {
+        case Op::Add:
+            stack_push(left + right, Type::Number);
+            break;
+        case Op::Sub:
+            stack_push(left - right, Type::Number);
+            break;
+        case Op::Mult:
+            stack_push(left * right, Type::Number);
+            break;
+        case Op::Div:
+            stack_push(left / right, Type::Number);
+            break;
+        }
+    }
 }
 
 
@@ -354,7 +472,7 @@ void Interpreter::print_stack(const std::string& where) const {
 #endif
 }
 
-Interpreter::Interpreter(const std::vector<Token*>& tokens)
+Interpreter::Interpreter(std::vector<Token*>& tokens)
     : m_tokens(tokens) {
     auto fn_print = [&] {
         auto res = stack_expect(Type::String);
@@ -418,7 +536,7 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
 Result Interpreter::run() {
     m_index = 0;
     while (m_ok && m_index < m_tokens.size()) {
-        handle();
+        handle_main();
     }
 
     print_stack("at end of program");

@@ -4,11 +4,7 @@
 
 const std::string src =
     R"(
-Number my_number := 4.65;
-if (true) {
-    String str := "Hello, World! My number is: ";
-}
-print(string_concat(str, number_to_string(my_number)));
+Number a := 2 + 5;
 )";
 
 int main(int, char**) {

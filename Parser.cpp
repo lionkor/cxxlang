@@ -28,19 +28,23 @@ Parser::Parser(const std::string& src) {
 
         // handle number literals
         if (!found && std::isdigit(src[i])) {
-            std::string number_str;
             // FIXME : this is shit
-            number_str.resize(15, ' ');
-            auto end = std::copy_if(src.begin() + i, src.end(), number_str.begin(),
+            bool found_dot = false;
+            auto end = std::find_if_not(src.begin() + i, src.end(),
                 [&](char c) -> bool {
-                    return std::isdigit(c)
-                           || c == '.';
+                    if (!found_dot && c == '.') {
+                        found_dot = true;
+                        return true;
+                    } else {
+                        return std::isdigit(c);
+                    }
                 });
-            auto tok = new Token { Token::Type::NumberLiteral, Variant(std::stod(number_str), Type::Number) };
+            auto number_str = std::string(src.begin() + i, end);
+            auto tok = new Token { Token::Type::NumericLiteral, Variant(std::stod(number_str), Type::Number) };
             std::cout << "→ Found token: " << tok->print() << std::endl;
-            m_tokens.push_back(tok);
+            m_tokens.push_back(tok); 
             // advance i
-            i += end - number_str.begin();
+            i += number_str.size();
             found = true;
         }
 

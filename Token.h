@@ -10,89 +10,97 @@
 struct Token {
     enum Type
     {
-        KeywordIf,           // if
-        KeywordWhile,        // while
-        Identifier,          // (any identifier)
-        SymbolEquals,        // =
-        SymbolAssign,        // :=
-        SymbolPlus,          // +
-        SymbolMinus,         // -
-        StringLiteral,       // std::string
-        NumberLiteral,       // double
-        SymbolOpeningParens, // (
-        SymbolClosingParens, // )
-        KeywordTrue,         // true
-        KeywordFalse,        // false
-        SymbolOpeningCurly,  // {
-        SymbolClosingCurly,  // }
-        SymbolSemicolon,     // ;
-        KeywordAnd,          // and
-        KeywordOr,           // or
-        Invalid,             // an invalid type
-        SymbolComma,         // ,
+        If,             // if
+        While,          // while
+        Identifier,     // (any identifier)
+        Equals,         // =
+        Assign,         // :=
+        Plus,           // +
+        Minus,          // -
+        Star,           // *
+        Slash,          // /
+        StringLiteral,  // std::string
+        NumericLiteral, // double
+        OpeningParens,  // (
+        ClosingParens,  // )
+        True,           // true
+        False,          // false
+        OpeningCurly,   // {
+        ClosingCurly,   // }
+        Semicolon,      // ;
+        And,            // and
+        Or,             // or
+        Comma,          // ,
+        Invalid,        // an invalid type
     } type;
     Variant value;
 
     std::string print() const {
         switch (type) {
-        case Token::SymbolComma:
+        case Token::Star:
+            return "*";
+            break;
+        case Token::Slash:
+            return "/";
+            break;
+        case Token::Comma:
             return ",";
             break;
         case Token::Invalid:
             return "INVALID";
             break;
-        case Token::KeywordAnd:
+        case Token::And:
             return "and";
             break;
-        case Token::KeywordOr:
+        case Token::Or:
             return "or";
             break;
-        case Token::SymbolSemicolon:
+        case Token::Semicolon:
             return ";";
             break;
-        case Token::SymbolOpeningCurly:
+        case Token::OpeningCurly:
             return "{";
             break;
-        case Token::SymbolClosingCurly:
+        case Token::ClosingCurly:
             return "}";
             break;
-        case Token::KeywordTrue:
+        case Token::True:
             return "true";
             break;
-        case Token::KeywordFalse:
+        case Token::False:
             return "false";
             break;
-        case Token::SymbolOpeningParens:
+        case Token::OpeningParens:
             return "(";
             break;
-        case Token::SymbolClosingParens:
+        case Token::ClosingParens:
             return ")";
             break;
-        case Token::KeywordIf:
+        case Token::If:
             return "if";
             break;
-        case Token::KeywordWhile:
+        case Token::While:
             return "while";
             break;
         case Token::Identifier:
             return "id(" + value.as<std::string>() + ")";
             break;
-        case Token::SymbolEquals:
+        case Token::Equals:
             return "=";
             break;
-        case Token::SymbolAssign:
+        case Token::Assign:
             return ":=";
             break;
-        case Token::SymbolPlus:
+        case Token::Plus:
             return "+";
             break;
-        case Token::SymbolMinus:
+        case Token::Minus:
             return "-";
             break;
         case Token::StringLiteral:
             return "str(" + value.as<std::string>() + ")";
             break;
-        case Token::NumberLiteral:
+        case Token::NumericLiteral:
             return "num(" + std::to_string(value.as<double>()) + ")";
             break;
         default:
@@ -105,86 +113,94 @@ struct Token {
 
 static inline std::string nameof(Token::Type t) {
     switch (t) {
-    case Token::SymbolComma:
+    case Token::Star:
+        return "'*' symbol";
+        break;
+    case Token::Slash:
+        return "'/' symbol";
+        break;
+    case Token::Comma:
         return "',' symbol";
         break;
     case Token::Invalid:
         return "INVALID";
         break;
-    case Token::KeywordAnd:
+    case Token::And:
         return "'and' keyword";
         break;
-    case Token::KeywordOr:
+    case Token::Or:
         return "'or' keyword";
         break;
-    case Token::KeywordIf:
+    case Token::If:
         return "'if' keyword";
         break;
-    case Token::KeywordWhile:
+    case Token::While:
         return "'while' keyword";
         break;
     case Token::Identifier:
         return "identifier";
         break;
-    case Token::SymbolEquals:
+    case Token::Equals:
         return "'=' symbol";
         break;
-    case Token::SymbolAssign:
+    case Token::Assign:
         return "':=' symbol";
         break;
-    case Token::SymbolPlus:
+    case Token::Plus:
         return "'+' symbol";
         break;
-    case Token::SymbolMinus:
+    case Token::Minus:
         return "'-' symbol";
         break;
     case Token::StringLiteral:
         return "string literal";
         break;
-    case Token::NumberLiteral:
+    case Token::NumericLiteral:
         return "number literal";
         break;
-    case Token::SymbolOpeningParens:
+    case Token::OpeningParens:
         return "'(' symbol";
         break;
-    case Token::SymbolClosingParens:
+    case Token::ClosingParens:
         return "')' symbol";
         break;
-    case Token::KeywordTrue:
+    case Token::True:
         return "'true' keyword";
         break;
-    case Token::KeywordFalse:
+    case Token::False:
         return "'false' keyword";
         break;
-    case Token::SymbolOpeningCurly:
+    case Token::OpeningCurly:
         return "'{' symbol";
         break;
-    case Token::SymbolClosingCurly:
+    case Token::ClosingCurly:
         return "'}' symbol";
         break;
-    case Token::SymbolSemicolon:
+    case Token::Semicolon:
         return "';' symbol";
         break;
     }
 }
 
 static const std::unordered_map<std::string, Token::Type> s_str_token_map = {
-    { "if", Token::Type::KeywordIf },
-    { "while", Token::Type::KeywordWhile },
-    { "=", Token::Type::SymbolEquals },
-    { ":=", Token::Type::SymbolAssign },
-    { "+", Token::Type::SymbolPlus },
-    { "-", Token::Type::SymbolMinus },
-    { "(", Token::Type::SymbolOpeningParens },
-    { ")", Token::Type::SymbolClosingParens },
-    { "true", Token::Type::KeywordTrue },
-    { "false", Token::Type::KeywordFalse },
-    { "{", Token::Type::SymbolOpeningCurly },
-    { "}", Token::Type::SymbolClosingCurly },
-    { ";", Token::Type::SymbolSemicolon },
-    { "and", Token::Type::KeywordAnd },
-    { "or", Token::Type::KeywordOr },
-    { ",", Token::Type::SymbolComma },
+    { "if", Token::Type::If },
+    { "while", Token::Type::While },
+    { "=", Token::Type::Equals },
+    { ":=", Token::Type::Assign },
+    { "+", Token::Type::Plus },
+    { "-", Token::Type::Minus },
+    { "*", Token::Type::Star },
+    { "/", Token::Type::Slash },
+    { "(", Token::Type::OpeningParens },
+    { ")", Token::Type::ClosingParens },
+    { "true", Token::Type::True },
+    { "false", Token::Type::False },
+    { "{", Token::Type::OpeningCurly },
+    { "}", Token::Type::ClosingCurly },
+    { ";", Token::Type::Semicolon },
+    { "and", Token::Type::And },
+    { "or", Token::Type::Or },
+    { ",", Token::Type::Comma },
 };
 
 #endif // TOKEN_H

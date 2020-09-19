@@ -38,7 +38,7 @@ private:
     };
 
     std::stack<Variant> m_stack;
-    const std::vector<Token*>& m_tokens;
+    std::vector<Token*>& m_tokens;
     bool m_ok { true };
     size_t m_index { 0 };
     static constexpr size_t GLOBAL_SCOPE = 0;
@@ -48,19 +48,22 @@ private:
     std::map<std::string, Variable> m_variables;
     void handle_condition();
     void handle_block();
+    void handle_main();
     void handle_expression();
     void handle_string_expression();
     void handle_numeric_expression();
     void handle_variable_declaration(Type t);
     void skip_block();
-    void handle_statement();
     void handle();
     void expect_token(Token::Type type);
     void consume(Token::Type type);
     void consume_blindly();
     void clean_scope();
+    size_t call_function(const std::string& val, size_t index);
     const Token& get_token();
     [[nodiscard]] size_t gather_args();
+
+    void calculate();
 
     template<typename... Types>
     std::optional<std::array<Variant, sizeof...(Types)>> stack_expect(Types&&... types) {
@@ -80,7 +83,7 @@ private:
                 values[i] = variant;
             } else {
                 std::stringstream ss;
-                ss << "function got unexpected arguments. expected arguments were: \n\t";
+                ss << "unexpected arguments. expected arguments were: \n\t";
                 ((ss << type_to_string(types) << " "), ...);
                 ss << ". \ninstead got: \n\t";
                 auto stack_copy = m_stack;
@@ -139,7 +142,7 @@ private:
     void print_stack(const std::string& where) const;
 
 public:
-    Interpreter(const std::vector<Token*>& tokens);
+    Interpreter(std::vector<Token*>& tokens);
 
     // TODO:
     Result run();
