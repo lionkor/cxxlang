@@ -5,7 +5,9 @@
 const std::string src =
     R"(
 Number my_number := 4.65;
-String str := "Hello, World! My number is: ";
+if (true) {
+    String str := "Hello, World! My number is: ";
+}
 print(string_concat(str, number_to_string(my_number)));
 )";
 

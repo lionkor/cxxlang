@@ -32,13 +32,20 @@ private:
         size_t argc;
     };
 
+    struct Variable {
+        Variant value;
+        size_t scope;
+    };
+
     std::stack<Variant> m_stack;
     const std::vector<Token*>& m_tokens;
     bool m_ok { true };
     size_t m_index { 0 };
+    static constexpr size_t GLOBAL_SCOPE = 0;
+    size_t m_scope_depth { GLOBAL_SCOPE };
     std::map<std::string, Function> m_function_map;
     std::map<std::string, Type> m_type_map;
-    std::map<std::string, Variant> m_variables;
+    std::map<std::string, Variable> m_variables;
     void handle_condition();
     void handle_block();
     void handle_expression();
@@ -51,6 +58,7 @@ private:
     void expect_token(Token::Type type);
     void consume(Token::Type type);
     void consume_blindly();
+    void clean_scope();
     const Token& get_token();
     [[nodiscard]] size_t gather_args();
 

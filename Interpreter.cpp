@@ -1,6 +1,7 @@
 #include "Interpreter.h"
 #include <iomanip>
 #include <charconv>
+#include <algorithm>
 
 void Interpreter::handle_condition() {
     // pre stack: ?
@@ -49,6 +50,8 @@ void Interpreter::handle_condition() {
 }
 
 void Interpreter::handle_block() {
+    m_scope_depth += 1;
+    std::cout << "scope depth: " << m_scope_depth << std::endl;
     consume(Token::SymbolOpeningCurly);
     size_t curlys = 1;
     while (m_index < m_tokens.size()) {
@@ -64,6 +67,9 @@ void Interpreter::handle_block() {
         }
     }
     consume(Token::SymbolClosingCurly);
+    m_scope_depth -= 1;
+    std::cout << "scope depth: " << m_scope_depth << std::endl;
+    clean_scope();
 }
 
 void Interpreter::handle_expression() {
@@ -106,7 +112,6 @@ void Interpreter::handle_variable_declaration(Type t) {
     auto name_literal = name.value.as<std::string>();
     consume(Token::SymbolAssign);
     handle_expression();
-    consume(Token::SymbolSemicolon);
     // now we should have a value on the stack!
     if (stack_empty()) {
         error("cannot assign void" << std::endl);
@@ -120,7 +125,7 @@ void Interpreter::handle_variable_declaration(Type t) {
         return;
     }
     // all ok, now store
-    m_variables[name_literal] = stack_top();
+    m_variables[name_literal] = Variable { stack_top(), m_scope_depth };
     stack_pop();
 }
 
@@ -145,7 +150,6 @@ void Interpreter::skip_block() {
 
 void Interpreter::handle_statement() {
     handle();
-    consume(Token::SymbolSemicolon);
 }
 
 void Interpreter::handle() {
@@ -220,8 +224,9 @@ void Interpreter::handle() {
         } else if (m_type_map.find(val) != m_type_map.end()) {
             // variable declaration!
             handle_variable_declaration(m_type_map[val]);
+            consume(Token::SymbolSemicolon);
         } else if (m_variables.find(val) != m_variables.end()) {
-            stack_push(m_variables[val]);
+            stack_push(m_variables[val].value);
         } else {
             error("identifier \"" << val << "\" doesn't map to any function or value" << std::endl);
             m_ok = false;
@@ -281,6 +286,16 @@ void Interpreter::consume_blindly() {
     ++m_index;
 }
 
+void Interpreter::clean_scope() {
+    auto iter = m_variables.begin();
+    while ((iter = std::find_if(m_variables.begin(), m_variables.end(), [&](auto& pair) {
+        auto var = pair.second;
+        return var.scope > m_scope_depth;
+    })) != m_variables.end()) {
+        m_variables.erase(iter);
+    }
+}
+
 const Token& Interpreter::get_token() {
     return *m_tokens[m_index];
 }
@@ -303,7 +318,6 @@ const Token& Interpreter::get_token() {
             if (peek() != Token::SymbolComma) {
                 break;
             } else {
-                std::cout << "got comma\n";
                 consume(Token::SymbolComma);
             }
         }
@@ -321,7 +335,7 @@ Token::Type Interpreter::peek() const {
 }
 
 void Interpreter::print_stack(const std::string& where) const {
-#if 0
+#if 1
     std::cout << " > stack " << where << "\n";
     std::stack stack_copy = m_stack;
     size_t i = 0;
@@ -396,7 +410,7 @@ Interpreter::Interpreter(const std::vector<Token*>& tokens)
     };
 
     m_variables = {
-        { "PI", Variant(double(3.1415926535897932384626433832795028841), Type::Number) },
+        { "PI", { Variant(double(3.1415926535897932384626433832795028841), Type::Number), GLOBAL_SCOPE } },
     };
 }
 
